@@ -4,6 +4,53 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { formSchema, type FormData } from '@/lib/validations/form';
 import { useState } from 'react';
 
+const CONTACT_EMAIL = 'andrej.trnka@trnava-vuc.sk';
+
+const formatCurrency = (value: number | undefined) => {
+  if (!value) return '0 EUR';
+  return `${value.toLocaleString('sk-SK')} EUR`;
+};
+
+const optionalNumber = {
+  setValueAs: (value: string) => value === '' ? undefined : Number(value),
+};
+
+const requiredNumber = {
+  setValueAs: (value: string) => value === '' ? undefined : Number(value),
+};
+
+const createEmailBody = (data: FormData) => [
+  'Nový záznam aktivity',
+  '',
+  'Základné informácie',
+  `Rok: ${data.rok}`,
+  `Obec: ${data.obec}`,
+  `Okres: ${data.okres}`,
+  `Aktivita ukončená: ${data.ukoncena === 'ano' ? 'Áno' : 'Nie'}`,
+  '',
+  'Detaily aktivity',
+  `Názov aktivity: ${data.nazovAktivity}`,
+  `Priorita podľa PHRSR: ${data.prioritaPHRSR}`,
+  '',
+  'Merateľný ukazovateľ',
+  `Názov: ${data.nazovUkazovatela}`,
+  `Jednotka: ${data.jednotkaUkazovatela}`,
+  `Hodnota: ${data.hodnotaUkazovatela}`,
+  '',
+  'Financovanie',
+  `Celková prefinancovaná čiastka: ${formatCurrency(data.prefinancovanaCiastka)}`,
+  '',
+  'Zdroje financovania',
+  `Operačný program: ${data.operacnyProgram || 'Neuvedené'}`,
+  `Mechanizmus: ${formatCurrency(data.mechanizmus)}`,
+  `Nadácia: ${formatCurrency(data.nadacia)}`,
+  `Fond/Grant: ${formatCurrency(data.fondGrant)}`,
+  `Agentúra: ${formatCurrency(data.agentura)}`,
+  `Vlastné zdroje: ${formatCurrency(data.vlastneZdroje)}`,
+  `Iné: ${formatCurrency(data.ineZdroje)}`,
+  `Iné financovanie: ${data.ineFinancovanieNazov || 'Neuvedené'}`,
+].join('\n');
+
 export default function ContactForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -12,7 +59,6 @@ export default function ContactForm() {
     handleSubmit,
     formState: { errors },
     reset,
-    setError,
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -23,40 +69,20 @@ export default function ContactForm() {
   });
 
   const onSubmit = async (data: FormData) => {
-    try {
-      setIsSubmitting(true);
-      
-      const response = await fetch('/api/send-email', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // Pridáme CSRF token ak ho používate
-          // 'X-CSRF-Token': csrfToken,
-        },
-        body: JSON.stringify(data),
-      });
+    setIsSubmitting(true);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Odoslanie zlyhalo');
-      }
+    const subject = `Nový záznam aktivity - ${data.obec}`;
+    const mailtoUrl = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(createEmailBody(data))}`;
 
-      reset({
-        rok: new Date().getFullYear(),
-        ukoncena: 'ano',
-        gdprSuhlas: false,
-      });
-      
-      alert('Formulár bol úspešne odoslaný');
-    } catch (error) {
-      console.error('Chyba pri odosielaní:', error);
-      setError('root', {
-        type: 'server',
-        message: 'Nastala chyba pri odosielaní formulára. Skúste to prosím znova.',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+    window.location.href = mailtoUrl;
+
+    reset({
+      rok: new Date().getFullYear(),
+      ukoncena: 'ano',
+      gdprSuhlas: false,
+    });
+
+    setIsSubmitting(false);
   };
 
   return (
@@ -72,7 +98,7 @@ export default function ContactForm() {
             className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
               errors.rok ? 'border-red-300' : 'border-gray-300'
             }`}
-            {...register('rok', { valueAsNumber: true })}
+            {...register('rok', requiredNumber)}
           />
           {errors.rok && (
             <p className="mt-1 text-sm text-red-600">{errors.rok.message}</p>
@@ -229,7 +255,7 @@ export default function ContactForm() {
           className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
             errors.prefinancovanaCiastka ? 'border-red-300' : 'border-gray-300'
           }`}
-          {...register('prefinancovanaCiastka', { valueAsNumber: true })}
+          {...register('prefinancovanaCiastka', requiredNumber)}
         />
         {errors.prefinancovanaCiastka && (
           <p className="mt-1 text-sm text-red-600">{errors.prefinancovanaCiastka.message}</p>
@@ -267,7 +293,7 @@ export default function ContactForm() {
               className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
                 errors.mechanizmus ? 'border-red-300' : 'border-gray-300'
               }`}
-              {...register('mechanizmus', { valueAsNumber: true })}
+              {...register('mechanizmus', optionalNumber)}
             />
             {errors.mechanizmus && (
               <p className="mt-1 text-sm text-red-600">{errors.mechanizmus.message}</p>
@@ -284,7 +310,7 @@ export default function ContactForm() {
               className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
                 errors.nadacia ? 'border-red-300' : 'border-gray-300'
               }`}
-              {...register('nadacia', { valueAsNumber: true })}
+              {...register('nadacia', optionalNumber)}
             />
             {errors.nadacia && (
               <p className="mt-1 text-sm text-red-600">{errors.nadacia.message}</p>
@@ -301,7 +327,7 @@ export default function ContactForm() {
               className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
                 errors.fondGrant ? 'border-red-300' : 'border-gray-300'
               }`}
-              {...register('fondGrant', { valueAsNumber: true })}
+              {...register('fondGrant', optionalNumber)}
             />
             {errors.fondGrant && (
               <p className="mt-1 text-sm text-red-600">{errors.fondGrant.message}</p>
@@ -318,7 +344,7 @@ export default function ContactForm() {
               className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
                 errors.agentura ? 'border-red-300' : 'border-gray-300'
               }`}
-              {...register('agentura', { valueAsNumber: true })}
+              {...register('agentura', optionalNumber)}
             />
             {errors.agentura && (
               <p className="mt-1 text-sm text-red-600">{errors.agentura.message}</p>
@@ -335,7 +361,7 @@ export default function ContactForm() {
               className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
                 errors.vlastneZdroje ? 'border-red-300' : 'border-gray-300'
               }`}
-              {...register('vlastneZdroje', { valueAsNumber: true })}
+              {...register('vlastneZdroje', optionalNumber)}
             />
             {errors.vlastneZdroje && (
               <p className="mt-1 text-sm text-red-600">{errors.vlastneZdroje.message}</p>
@@ -352,7 +378,7 @@ export default function ContactForm() {
               className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
                 errors.ineZdroje ? 'border-red-300' : 'border-gray-300'
               }`}
-              {...register('ineZdroje', { valueAsNumber: true })}
+              {...register('ineZdroje', optionalNumber)}
             />
             {errors.ineZdroje && (
               <p className="mt-1 text-sm text-red-600">{errors.ineZdroje.message}</p>
@@ -429,4 +455,4 @@ export default function ContactForm() {
       </button>
     </form>
   );
-} 
+}
