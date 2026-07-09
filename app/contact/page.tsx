@@ -1,4 +1,5 @@
 import ContactForm from "@/components/ContactForm";
+import Footer from "@/components/Footer";
 
 export default function Contact() {
   return (
@@ -27,12 +28,7 @@ export default function Contact() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white mt-16">
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <p className="text-center">&copy; 2024 Smart stratégia. Všetky práva vyhradené.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
-} 
+}

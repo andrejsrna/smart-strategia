@@ -1,3 +1,5 @@
+import Footer from "@/components/Footer";
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,12 +39,7 @@ export default function Home() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white mt-16">
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <p className="text-center">&copy; 2024 Smart stratégia. Všetky práva vyhradené.</p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
